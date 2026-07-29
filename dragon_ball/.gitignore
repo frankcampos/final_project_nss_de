@@ -11,7 +11,18 @@ wheels/
 
 #jet brain.
 
-.env
 
+.env
 data/source/
 data/raw/
+
+.user.yml
+
+*.duckdb
+*.duckdb.wal
+warehouse.duckdb
+
+.idea
+
+.gitkeep
+
