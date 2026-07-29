@@ -20,9 +20,8 @@ data/raw/
 
 *.duckdb
 *.duckdb.wal
-warehouse.duckdb
 
-.idea
+logs/
 
 .gitkeep
 
