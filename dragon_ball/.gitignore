@@ -10,3 +10,8 @@ wheels/
 .venv
 
 #jet brain.
+
+.env
+
+data/source/
+data/raw/
