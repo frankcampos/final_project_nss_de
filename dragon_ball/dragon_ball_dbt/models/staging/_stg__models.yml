@@ -1,0 +1,116 @@
+version: 2
+
+models:
+  - name: stg_student_performance
+    description: >
+      Silver layer. One row per distinct student observation, deduplicated,
+      renamed to snake_case, with 0/1 integers cast to booleans. Categorical
+      columns are left as integer codes and decoded in the mart layer.
+    columns:
+      - name: student_observation_key
+        description: >
+          Surrogate key. The source has no student_id, so this is an md5 hash
+          of all 16 attributes. Unique only because the model dedupes first.
+        data_tests:
+          - unique
+          - not_null
+
+      - name: exam_score
+        description: "Exam score, 40-100 in the source."
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 100
+
+      - name: attendance_pct
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 100
+
+      - name: assignment_completion_pct
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 100
+
+      - name: grade_code
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [0, 1, 2, 3]
+                quote: false
+
+      - name: learning_style_code
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [0, 1, 2, 3]
+                quote: false
+
+      - name: gender_code
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [0, 1]
+                quote: false
+
+      # accepted_values alone does NOT catch nulls: `NULL not in (0,1,2)`
+      # evaluates to NULL, so the row is never returned and the test passes.
+      # Always pair the two — they cover disjoint failure modes.
+      - name: resources_code
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [0, 1, 2]
+                quote: false
+
+      - name: motivation_code
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [0, 1, 2]
+                quote: false
+
+      - name: stress_level_code
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [0, 1, 2]
+                quote: false
+
+      # A null in the underlying 0/1 integer becomes a null boolean, which the
+      # mart's `sum(case when flag then 1 else 0 end)` silently counts as 0.
+      # These tests are the only thing standing between that and a wrong
+      # percentage in a report.
+      - name: has_extracurricular
+        data_tests: [not_null]
+
+      - name: has_internet_access
+        data_tests: [not_null]
+
+      - name: participates_in_discussions
+        data_tests: [not_null]
+
+      - name: uses_edu_tech
+        data_tests: [not_null]
+
+      - name: source_row_count
+        description: "How many times this exact 16-column combination appeared in the source."
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1

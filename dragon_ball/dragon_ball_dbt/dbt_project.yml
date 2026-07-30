@@ -35,7 +35,10 @@ models:
     example:
       +materialized: view
     staging:
-      +materialized: view
+      # table, not view: a view over read_csv() stores the relative path and
+      # only resolves from this directory. Materializing lands the rows in the
+      # warehouse so notebooks and the DuckDB UI can query them too.
+      +materialized: table
     marts:
       +materialized: table
 
