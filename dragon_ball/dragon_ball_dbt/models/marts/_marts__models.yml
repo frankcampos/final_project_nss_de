@@ -1,0 +1,136 @@
+version: 2
+
+models:
+  - name: fct_student_performance
+    description: >
+      Gold layer. Grain-level fact: one row per student observation with all
+      categorical codes resolved to labels via seed joins. Not aggregated — a
+      fact at native grain is still a mart.
+    columns:
+      - name: student_observation_key
+        data_tests:
+          - unique
+          - not_null
+
+      - name: gender
+        description: "Decoded from gender_code. Mapping is ASSUMED — see seed_gender."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["Female", "Male"]
+
+      - name: learning_style
+        description: "Decoded from learning_style_code. Mapping is ASSUMED — see seed_learning_style."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["Auditory", "Kinesthetic", "Reading/Writing", "Visual"]
+
+      - name: grade_letter
+        description: "Derived from exam_score via seed_grade_band. Empirically verified."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["A", "B", "C", "D"]
+
+      - name: resource_access_level
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["Low", "Medium", "High"]
+
+      - name: motivation_level
+        data_tests: [not_null]
+
+      - name: stress_level
+        data_tests: [not_null]
+
+      - name: exam_score
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 100
+
+      - name: is_passing
+        data_tests: [not_null]
+
+  - name: mart_performance_by_cohort
+    description: >
+      Gold layer, aggregated. One row per learning-style x resource-access x
+      motivation cohort. Cohort averages are expected to be flat (~70) because
+      the source has no predictive signal; that flatness is the finding.
+    columns:
+      - name: student_count
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+
+      - name: avg_exam_score
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 100
+
+      - name: pass_rate_pct
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 100
+
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - learning_style
+              - resource_access_level
+              - motivation_level
+
+seeds:
+  - name: seed_grade_band
+    description: >
+      Maps exam-score bands to letter grades. Derived empirically: the source
+      FinalGrade column is a deterministic function of ExamScore.
+    columns:
+      - name: grade_code
+        data_tests: [unique, not_null]
+      - name: grade_letter
+        data_tests: [unique, not_null]
+
+  - name: seed_learning_style
+    description: >
+      ASSUMED mapping. The source is label-encoded and the original string
+      labels are not recoverable from the data. Assumes sklearn LabelEncoder
+      alphabetical ordering. VERIFY against the Kaggle data card before
+      presenting any conclusions that depend on these labels.
+    columns:
+      - name: learning_style_code
+        data_tests: [unique, not_null]
+
+  - name: seed_gender
+    description: "ASSUMED mapping (alphabetical: Female=0, Male=1). Unverified."
+    columns:
+      - name: gender_code
+        data_tests: [unique, not_null]
+
+  - name: seed_ordinal_level
+    description: >
+      ASSUMED mapping for the Low/Medium/High ordinal columns (Resources,
+      Motivation, StressLevel). Assumes alphabetical encoding, which puts
+      High=0, Low=1, Medium=2 — deliberately counterintuitive, which is why
+      level_rank exists to restore the true ordering. Unverified.
+    columns:
+      - name: level_code
+        data_tests: [unique, not_null]
+      - name: level_rank
+        data_tests: [unique, not_null]
