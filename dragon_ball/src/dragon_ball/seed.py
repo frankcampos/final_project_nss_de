@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from botocore.exceptions import ClientError
-from config import get_s3_client, settings
+from dragon_ball.config import get_s3_client, settings
 
 # Anchor to this file's location so it works no matter the working directory.
 SOURCE_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "source"
@@ -19,7 +19,7 @@ def ensure_bucket(client, bucket: str) -> None:
 def upload(client, bucket: str, local_path: Path, key: str) -> None:
     if not local_path.exists():
         raise FileNotFoundError(
-            f"{local_path} not found — run apy.py first"
+            f"{local_path} not found — run api.py first"
         )
     client.upload_file(str(local_path), bucket, key)
     size = local_path.stat().st_size

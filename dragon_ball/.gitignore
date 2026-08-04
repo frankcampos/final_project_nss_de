@@ -16,10 +16,18 @@ wheels/
 data/source/
 data/raw/
 
+# Metabase's own H2 application database: users, saved questions, connection
+# settings. Container state, not project source.
+data/metabase/
+
+# The published serving copy — regenerate with `make publish`, never commit.
+data/serving/
+
 .user.yml
 
 *.duckdb
 *.duckdb.wal
+*.duckdb.staging
 
 logs/
 

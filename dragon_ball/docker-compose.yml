@@ -36,5 +36,34 @@ services:
       retries: 5
       start_period: 10s
 
+  metabase:
+    build: ./metabase
+    container_name: metabase_final_project
+    ports:
+      - "3000:3000"
+    environment:
+      MB_DB_FILE: /metabase-data/metabase.db
+    volumes:
+      # The published serving copy — what Metabase should actually read.
+      # `make refresh` rebuilds it after every dbt build.
+      - ./data/serving:/serving:ro
+      # The live warehouse, read-only, at /warehouse/warehouse.duckdb. Usable,
+      # but Metabase then holds the file open and `dbt build` cannot take its
+      # write lock. Prefer /serving.
+      - ./data:/warehouse:ro
+      # Metabase's OWN database: users, questions, dashboards, saved
+      # connections. Without this mount it lives in the container's ephemeral
+      # layer and every rebuild wipes your setup.
+      - ./data/metabase:/metabase-data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+
 volumes:
   rustfs_data:
+
+
+
